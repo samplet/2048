@@ -72,8 +72,28 @@ GameManager.prototype.addStartTiles = function () {
 // Adds a tile in a random position
 GameManager.prototype.addRandomTile = function () {
   if (this.grid.cellsAvailable()) {
-    var value = Math.random() < 0.9 ? 2 : 4;
-    var tile = new Tile(this.grid.randomAvailableCell(), value);
+    var type = Math.random() < 0.66 ? 0 : 1;
+    if (type === 0) {
+      var value = Math.random() < 0.9 ? 2 : 4;
+    } else {
+      var rand = Math.random();
+      if (rand > 0.999) {
+        var value = 128;
+      } else if (rand > 0.99) {
+        var value = 64;
+      } else if (rand > 0.98) {
+        var value = 32;
+      } else if (rand > 0.94) {
+        var value = 16;
+      } else if (rand > 0.85) {
+        var value = 8;
+      } else if (rand > 0.75) {
+        var value = 4;
+      } else {
+        var value = 2;
+      }
+    }
+    var tile = new Tile(this.grid.randomAvailableCell(), value, type);
 
     this.grid.insertTile(tile);
   }
@@ -157,8 +177,8 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
+        if (next && next.value === tile.value && next.type === tile.type && !next.mergedFrom) {
+          var merged = new Tile(positions.next, tile.value * 2, tile.type);
           merged.mergedFrom = [tile, next];
 
           self.grid.insertTile(merged);
@@ -172,6 +192,18 @@ GameManager.prototype.move = function (direction) {
 
           // The mighty 2048 tile
           if (merged.value === 2048) self.won = true;
+        } else if (next && next.value === tile.value && !next.mergedFrom) {
+          var merged = new Tile(positions.next, tile.value === 2 ? 2 : tile.value / 2, 0);
+          merged.mergedFrom = [tile, next];
+
+          self.grid.insertTile(merged);
+          self.grid.removeTile(tile);
+
+          // Converge the two tiles' positions
+          tile.updatePosition(positions.next);
+
+          // Update the score
+          self.score -= merged.value;
         } else {
           self.moveTile(tile, positions.farthest);
         }
